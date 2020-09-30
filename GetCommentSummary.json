@@ -1,0 +1,143 @@
+{
+    "url": "https://www.nytimes.com/svc/community/V3/requestHandler?url=https%3A%2F%2Fwww.nytimes.com%2Finteractive%2F2020%2F09%2F27%2Fus%2Fdonald-trump-taxes.html&cmd=GetCommentSummary&method=get&callback=jsonp_1601499359619_42604",
+    "debug": {
+        "version": 4,
+        "nyt-com-shim": true
+    },
+    "status": "OK",
+    "copyright": "Copyright (c) 2020 The New York Times Company.  All Rights Reserved.",
+    "results": {
+        "url": "https://www.nytimes.com/interactive/2020/09/27/us/donald-trump-taxes.html",
+        "assetURL": "https://www.nytimes.com/interactive/2020/09/27/us/donald-trump-taxes.html",
+        "commentQuestion": "Share your thoughts.",
+        "totalCommentsFound": 9006,
+        "totalReplyCommentsFound": 3419,
+        "totalReporterReplyCommentsFound": 1,
+        "totalParentCommentsFound": 5587,
+        "totalEditorsSelectionFound": 23,
+        "totalRecommendationsFound": 6379,
+        "vendorID": "",
+        "source": "url",
+        "assetID": "article_100000007353472",
+        "assetTitle": "Trump’s Taxes Show Chronic Losses and Years of Income Tax Avoidance",
+        "createDate": "1601241553",
+        "updateDate": "1601499389",
+        "taxonomies": [
+            {
+                "taxonomyID": 0,
+                "name": ""
+            },
+            {
+                "taxonomyID": 0,
+                "name": ""
+            }
+        ],
+        "taxonomy": "",
+        "labels": [],
+        "text": [],
+        "properties": {
+            "comment-list-sort-editors": {
+                "groupID": 1,
+                "taxonomyID": 1
+            },
+            "reached-max-com-off": {
+                "groupID": 3,
+                "taxonomyID": 1
+            }
+        },
+        "all-properties": [
+            {
+                "description": "Notinagroup",
+                "name": "no-group",
+                "properties": []
+            },
+            {
+                "description": "Sortordertousewhendisplayingcommentlistings",
+                "name": "comment-list-sort",
+                "properties": {
+                    "comment-list-sort-approvedate": {
+                        "description": "sortbyapprovedate,oldestfirst",
+                        "id": 2
+                    },
+                    "comment-list-sort-approvedate-desc": {
+                        "description": "sortbyapprovedate,newestfirst",
+                        "id": 3
+                    },
+                    "comment-list-sort-editors": {
+                        "description": "sortbyeditors'selections",
+                        "id": 5
+                    },
+                    "comment-list-sort-recommended": {
+                        "description": "sortbynumberofrecommendations",
+                        "id": 4
+                    },
+                    "comment-list-sort-replies": {
+                        "description": "sortbyreplies",
+                        "id": 6
+                    }
+                }
+            },
+            {
+                "description": "auto-moderationonoroff",
+                "name": "auto-moderation",
+                "properties": {
+                    "automoderation-off": {
+                        "description": "auto-moderationoff",
+                        "id": 8
+                    },
+                    "automoderation-on": {
+                        "description": "auto-moderationon",
+                        "id": 7
+                    }
+                }
+            },
+            {
+                "description": "IfwereachedthemaxnumberofCOMSperparenttaxonomy",
+                "name": "reached-max-com",
+                "properties": {
+                    "reached-max-com-off": {
+                        "description": "didnotreachthemaxnumberofCOMS",
+                        "id": 10
+                    },
+                    "reached-max-com-on": {
+                        "description": "reachedthemaxnumberofCOMS",
+                        "id": 9
+                    }
+                }
+            },
+            {
+                "description": "Touseinlinecommentsoroverflowpage",
+                "name": "comment-style",
+                "properties": {
+                    "inline-comments": {
+                        "description": "articleshavinginlinecommentsoroverflowpage",
+                        "id": 11
+                    },
+                    "overflow": {
+                        "description": "commentsonoverflowpage",
+                        "id": 12
+                    }
+                }
+            }
+        ],
+        "canSubmit": 1,
+        "api_timestamp": 1601499392,
+        "totalRating": 0,
+        "userCount": 0,
+        "averageRating": 0,
+        "sortBy": "comment-list-sort-editors",
+        "userData": {
+            "userID": 0,
+            "login": null,
+            "email": "",
+            "displayName": "",
+            "url": "",
+            "title": "",
+            "location": "",
+            "times_people": 0,
+            "sharing": 0,
+            "labels": null
+        }
+    },
+    "errorDetails": ""
+}
