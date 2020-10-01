@@ -30,13 +30,19 @@ class NYTimesComments:
         
         data = response.json()
         parentComments = data['results']['comments']
+        replyCnt = 0
         for cmt in parentComments:
+            # by default, only 3 replies are returned
             if cmt["replyCount"] > 3:
                 replies = self._get_reply_comments(articleURL, cmt['commentSequence'], 0, cmt["replyCount"])
                 if replies:
                     cmt['replies'] = replies
+                    replyCnt += (len(replies) - 3)
+        data['results']['totalCommentsReturned'] += replyCnt
+        data['results']['totalReplyCommentsReturned'] += replyCnt
         
-        with open('data.json', 'w', encoding='utf-8') as f:
+        outFile = articleURL.split('/')[-1].split('.')[0]+'.json'
+        with open(outFile, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=4)
     
     def _get_reply_comments(self, articleURL, commentSequence, offset, limit):
