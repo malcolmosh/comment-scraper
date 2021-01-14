@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "args": ["https://www.nytimes.com/interactive/2020/09/27/us/donald-trump-taxes.html"]
+            "args": ["https://www.seattletimes.com/seattle-news/weather/wild-weather-with-70-mph-winds-whips-seattle-and-western-washington-with-road-closures-and-power-outages/#comments", "--filepath", "data"]
         }
     ]
 }
