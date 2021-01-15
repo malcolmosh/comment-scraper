@@ -11,6 +11,10 @@ query CoralEmbedStream_Embed($assetId: ID, $assetUrl: String, $commentId: ID!, $
           status
           __typename
         }
+        alwaysPremod {
+          status
+          __typename
+        }
         suspension {
           until
           __typename
@@ -40,6 +44,10 @@ fragment CoralEmbedStream_Stream_root on RootQuery {
           __typename
         }
         banned {
+          status
+          __typename
+        }
+        alwaysPremod {
           status
           __typename
         }

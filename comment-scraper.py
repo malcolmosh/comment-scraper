@@ -2,22 +2,28 @@ import sys, requests, json, os, argparse
 from requests import HTTPError
 from urllib.parse import urlparse
 
-SUPPORTED_WEBSITES = ['www.nytimes.com', 'www.washingtonpost.com', 'www.seattletimes.com']
+SUPPORTED_WEBSITES = ['www.nytimes.com', 'www.washingtonpost.com', 'www.seattletimes.com', 'theintercept.com']
 
-class NewYorkTimes:
+class Headers:
     def __init__(self) -> None:
         self.headers = \
         {
-            "Host": "www.nytimes.com",\
             "Accept": "*/*",\
             "Accept-Language": "en-US,en;q=0.5",\
             "Accept-Encoding":"gzip, deflate, br",\
             "Connection":"close",\
-            "Cookie": "nyt-gdpr=0",\
-            "Referer": "https://www.nytimes.com",\
-            "TE":"Trailers",\
             "User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:81.0) Gecko/20100101 Firefox/81.0"
         }
+
+class CoralByPost(Headers):
+    def __init__(self) -> None:
+        super().__init__()
+
+class NewYorkTimes(Headers):
+    def __init__(self) -> None:
+        super.__init__()
+        self.headers["Host"] = "www.nytimes.com"
+
     def error(self, msg):
         print(msg)
 
@@ -61,7 +67,7 @@ class NewYorkTimes:
 class WashingtonPost:
     def __init__(self, batchSize = 500) -> None:
         self.API_ENDPOINT = "https://www.washingtonpost.com/talk/api/v1/graph/ql"
-        self.LIMIT = str(batchSize)
+        self.LIMIT = batchSize
     def error(self, msg):
         print(msg)
 
@@ -81,23 +87,46 @@ class WashingtonPost:
         return headers
 
     @staticmethod
-    def __load_initial_request_payload(limit):
-        with open('WSPinitPayload.json', encoding='utf-8') as f:
-            s = f.read().replace('__LIMIT__', limit)
-            ret = json.loads(s)
-            return ret
-
+    def __load_initial_query():
+        with open('coral-initial-query.txt', encoding='utf-8') as f:
+            return f.read()
+    
     @staticmethod
-    def __load_request_more_payload(limit):
-        with open('WPSLoadMorePayload.json', encoding='utf-8') as f:
-            s = f.read().replace('__LIMIT__', limit)
-            ret = json.loads(s)
-            return ret
+    def __load_more_query():
+        with open('coral-load-more-query.txt', encoding='utf-8') as f:
+            return f.read()
 
-    # def __build_initial_request_headers(self, url):
-    #     header = self.__request_headers_base()
-    #     header['Referer'] = url
-    #     return header
+    def __load_initial_request_payload(self, limit):
+        query = self.__load_initial_query().replace('__LIMIT__', str(limit))
+        payload = {
+            "query": query,
+            "variables": {
+                "assetId": "",
+                "assetUrl": "",
+                "commentId": "",
+                "hasComment": False,
+                "excludeIgnored": False,
+                "sortBy": "CREATED_AT",
+                "sortOrder": "ASC"
+            }
+        }
+        return payload
+
+    def __load_request_more_payload(self, limit):
+        query = self.__load_more_query().replace('__LIMIT__', str(limit))
+        payload = {
+            "query": query,
+            "variables": {
+                "limit": limit,
+                "cursor": "",
+                "parent_id": "",
+                "asset_id": "",
+                "sortOrder": "ASC",
+                "sortBy": "CREATED_AT",
+                "excludeIgnored": False
+            }
+        }
+        return payload
 
     def __build_initial_request_payload(self, url):
         payload = self.__load_initial_request_payload(self.LIMIT)
@@ -127,11 +156,15 @@ class WashingtonPost:
         assetID = data['data']['asset']['id']
         comments = data['data']['asset']['comments']
 
+        cnt = 0
+        requestCnt = 0
         # dfs each comment and load all replies as needed.
         def load_replies(assetID, parentNode, parentID):
+            nonlocal cnt, requestCnt
             hasNextPage = parentNode['hasNextPage']
             cursor = parentNode['endCursor']
             while hasNextPage:
+                requestCnt += 1
                 response = requests.post(self.API_ENDPOINT, headers = self.__build_request_headers(articleURL), data = self.__build_request_more_payload(self.LIMIT, cursor, parentID, assetID))
                 try:
                     response.raise_for_status()
@@ -144,21 +177,22 @@ class WashingtonPost:
                 cursor = replies['data']['comments']['endCursor']
 
             for cmt in parentNode['nodes']:
+                cnt += 1
                 # if cmt['id'] not in seen:
                 #     seen.add(cmt['id'])
                 #     commentCnt += 1
                 # else:
                 #     print('comment {} is visited before'.format(cmt['id']))
-                if cmt['replyCount'] > 0:
+                if 'replies' in cmt:
                     load_replies(assetID, cmt['replies'], cmt['id'])
         load_replies(assetID, comments, None)
-
+        print('load ', cnt, ' comments, made ', requestCnt, ' requests.')
         return data
 
 class SeattleTimes:
     def __init__(self, batchSize = 500) -> None:
         self.API_ENDPOINT = "https://seattletimes.talk.coralproject.net/api/v1/graph/ql"
-        self.LIMIT = str(batchSize)
+        self.LIMIT = batchSize
     def error(self, msg):
         print(msg)
 
@@ -178,23 +212,46 @@ class SeattleTimes:
         return headers
 
     @staticmethod
-    def __load_initial_request_payload(limit):
-        with open('SeattleTimesInitPayload.json', encoding='utf-8') as f:
-            s = f.read().replace('__LIMIT__', limit)
-            ret = json.loads(s)
-            return ret
-
+    def __load_initial_query():
+        with open('coral-initial-query.txt', encoding='utf-8') as f:
+            return f.read()
+    
     @staticmethod
-    def __load_request_more_payload(limit):
-        with open('WPSLoadMorePayload.json', encoding='utf-8') as f:
-            s = f.read().replace('__LIMIT__', limit)
-            ret = json.loads(s)
-            return ret
+    def __load_more_query():
+        with open('coral-load-more-query.txt', encoding='utf-8') as f:
+            return f.read()
 
-    # def __build_initial_request_headers(self, url):
-    #     header = self.__request_headers_base()
-    #     header['Referer'] = url
-    #     return header
+    def __load_initial_request_payload(self, limit):
+        query = self.__load_initial_query().replace('__LIMIT__', str(limit))
+        payload = {
+            "query": query,
+            "variables": {
+                "assetId": "",
+                "assetUrl": "",
+                "commentId": "",
+                "hasComment": False,
+                "excludeIgnored": False,
+                "sortBy": "CREATED_AT",
+                "sortOrder": "ASC"
+            }
+        }
+        return payload
+
+    def __load_request_more_payload(self, limit):
+        query = self.__load_more_query().replace('__LIMIT__', str(limit))
+        payload = {
+            "query": query,
+            "variables": {
+                "limit": limit,
+                "cursor": "",
+                "parent_id": "",
+                "asset_id": "",
+                "sortOrder": "ASC",
+                "sortBy": "CREATED_AT",
+                "excludeIgnored": False
+            }
+        }
+        return payload
 
     def __build_initial_request_payload(self, url):
         payload = self.__load_initial_request_payload(self.LIMIT)
@@ -213,9 +270,7 @@ class SeattleTimes:
         parsedUrl = urlparse(articleURL)
         articleURL = '{}://{}{}'.format(parsedUrl.scheme, parsedUrl.netloc, parsedUrl.path)
         # request initial comments
-        headers = self.__build_request_headers(articleURL)
-        data = self.__build_initial_request_payload(articleURL)
-        response = requests.post(self.API_ENDPOINT, headers = headers, data = data)
+        response = requests.post(self.API_ENDPOINT, headers = self.__build_request_headers(articleURL), data = self.__build_initial_request_payload(articleURL))
         try:
             response.raise_for_status()
             data = response.json()
@@ -226,11 +281,15 @@ class SeattleTimes:
         assetID = data['data']['asset']['id']
         comments = data['data']['asset']['comments']
 
+        cnt = 0
+        requestCnt = 0
         # dfs each comment and load all replies as needed.
         def load_replies(assetID, parentNode, parentID):
+            nonlocal cnt, requestCnt
             hasNextPage = parentNode['hasNextPage']
             cursor = parentNode['endCursor']
             while hasNextPage:
+                requestCnt += 1
                 response = requests.post(self.API_ENDPOINT, headers = self.__build_request_headers(articleURL), data = self.__build_request_more_payload(self.LIMIT, cursor, parentID, assetID))
                 try:
                     response.raise_for_status()
@@ -243,20 +302,27 @@ class SeattleTimes:
                 cursor = replies['data']['comments']['endCursor']
 
             for cmt in parentNode['nodes']:
+                cnt += 1
                 # if cmt['id'] not in seen:
                 #     seen.add(cmt['id'])
                 #     commentCnt += 1
                 # else:
                 #     print('comment {} is visited before'.format(cmt['id']))
-                if cmt['replyCount'] > 0:
+                if 'replies' in cmt:
                     load_replies(assetID, cmt['replies'], cmt['id'])
         load_replies(assetID, comments, None)
-
+        print('load ', cnt, ' comments, made ', requestCnt, ' requests.')
         return data
+
+class TheIntercept(WashingtonPost):
+    def __init__(self, batchSize=1000) -> None:
+        super().__init__(batchSize=batchSize)
+        self.API_ENDPOINT = "https://talk.theintercept.com/api/v1/graph/ql"
+
 
 class CommentScraper:
     def __init__(self) -> None:
-        self.scraper = {'www.washingtonpost.com': WashingtonPost(), 'www.seattletimes.com': SeattleTimes(), 'www.nytimes.com': NewYorkTimes()}
+        self.scraper = {'www.washingtonpost.com': WashingtonPost(), 'www.seattletimes.com': SeattleTimes(), 'www.nytimes.com': NewYorkTimes(), 'theintercept.com': TheIntercept()}
     
     def load_comments(self, articleURL, output):
         comments = self.scraper[parsedUrl.netloc].load_comments(articleURL)
