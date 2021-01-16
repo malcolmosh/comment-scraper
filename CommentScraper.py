@@ -83,7 +83,10 @@ class CoralByPost(__SolutionSkeleton__):
         super().__init__()
         self.LIMIT = batchSize
         self.API_ENDPOINT = endpoint
-        self.headers["Host"] = urlparse(endpoint).netloc
+
+        parsedUrl = urlparse(endpoint)
+        self.headers["Host"] = parsedUrl.netloc
+        self.headers["Origin"] = "{}://{}".format(parsedUrl.scheme, parsedUrl.netloc)
 
     @staticmethod
     def __load_initial_query__():
@@ -145,7 +148,7 @@ class CoralByPost(__SolutionSkeleton__):
         comments = data['data']['asset']['comments']
 
         cnt = 0
-        requestCnt = 0
+        requestCnt = 1
         # dfs each comment and load all replies as needed.
         def load_replies(assetID, parentNode, parentID):
             nonlocal cnt, requestCnt
@@ -205,12 +208,31 @@ class TheIntercept(CoralByPost):
 
         return super().request_routine("https://theintercept.com/?p={}".format(postID))
 
+class DeseretNews(CoralByPost):
+    def __init__(self, batchSize=500) -> None:
+        super().__init__("https://deseretnews.talk.coralproject.net/api/v1/graph/ql", batchSize=batchSize)
+
+class NUnl(CoralByPost):
+    def __init__(self, batchSize=500) -> None:
+        super().__init__("https://talk.nu.nl/api/v1/graph/ql", batchSize=batchSize)
+    
+    def request_routine(self, articleURL):
+        try:
+            postID = articleURL.split('/')[4]
+        except Exception as e:
+            self.error('Unrecognized patter for url from NU.nl.')
+            return
+
+        return super().request_routine("https://www.nu.nl/artikel/{}/redirect.html".format(postID))
+
+SOLUTION_MAP = {'www.washingtonpost.com': WashingtonPost(), 'www.seattletimes.com': SeattleTimes(), 'www.nytimes.com': NewYorkTimes(), 'theintercept.com': TheIntercept(), 'www.deseret.com': DeseretNews(), 'www.nu.nl': NUnl()}
+
 class CommentScraper:
     def __init__(self) -> None:
-        self.solutionMap = {'www.washingtonpost.com': WashingtonPost(), 'www.seattletimes.com': SeattleTimes(), 'www.nytimes.com': NewYorkTimes(), 'theintercept.com': TheIntercept()}
+        pass
     
     def __get_solution__(self, host):
-        return self.solutionMap.get(host, None)
+        return SOLUTION_MAP.get(host, None)
 
     def __build_output__(self, parsedUrl, filepath, filename):
         if filename:
@@ -256,13 +278,16 @@ class CommentScraper:
             print(parsedUrl.netloc, ' is not supported.')
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Scrape comments from the input article URL. Only articles from the following websites are supported:\n{}\n{}'.format('New York Times', 'Washington Post'))
-    parser.add_argument('articleURL', type=str, help='An article url from supported websites.')
+    parser = argparse.ArgumentParser(description='Scrape comments from the input article URL.')
+    parser.add_argument('-url', '--url', type=str, help='An article url from supported websites.')
     parser.add_argument('--filename', type=str, help='The output file name for the comments json file. If not given, the url path is used.')
     parser.add_argument('--filepath', type=str, help='The output file path for the comments json file, default to current directory.')
+    parser.add_argument('-l', '--list', action='store_true', help='List supported websites.')
     
     args = parser.parse_args()
-
-    scraper = CommentScraper()
-    scraper.load_comments(args.articleURL, filepath=args.filepath, filename=args.filename)
+    if args.list:
+        print('\n'.join(SOLUTION_MAP))
+    if args.url:
+        scraper = CommentScraper()
+        scraper.load_comments(args.url, filepath=args.filepath, filename=args.filename)
     exit()
