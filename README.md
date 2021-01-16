@@ -13,7 +13,7 @@ This tool load user comments from a url. Given a url of an articles Web page, us
 
 [NU](https://www.nu.nl)
 
-All the websites above except for the New York Times manage user comments using the [Coral Platform](https://github.com/coralproject/talk), so the program adapts a basic comments request routine (see the `CoralByPost` class) to each website. It should be quite straight forward to add more websites -- only need to find the API endpoints of the target Coral server, and the unique ID of the target article, which is usually the article url, or some post id store in the target Web page somewhere. 
+All the websites above except for the New York Times manage user comments using the [Coral Platform](https://github.com/coralproject/talk), so the program adapts a basic comments request routine (see the [`CoralByPost`](https://github.com/ZhijiaCHEN/comment-scraper/blob/a1722c9770156082d3f66726b65a78bd88be8c4a/CommentScraper.py#L81) class) to each website. It should be quite straight forward to add more websites -- only need to find the API endpoints of the target Coral server, and the unique ID of the target article, which is usually the article url, or some post id stored in the target Web page somewhere. 
 
 ## Usages
 To load comments from a target article url, use the command `python3 CommentScrapper.py --url some-url`. By default, the result is saved under current directory in a path mapped to the path of the url. To save the output to a particular path, use the `--filepath` option, and to name the output file, use the `--filename` option.
