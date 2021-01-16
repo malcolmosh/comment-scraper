@@ -33,6 +33,196 @@ fragment CoralEmbedStream_Comment_comment on Comment {
           replies(query: {limit: __LIMIT__, excludeIgnored: $excludeIgnored}) {
             nodes {
               ...CoralEmbedStream_Comment_SingleComment
+              replies(query: {limit: __LIMIT__, excludeIgnored: $excludeIgnored}) {
+            nodes {
+              ...CoralEmbedStream_Comment_SingleComment
+              replies(query: {limit: __LIMIT__, excludeIgnored: $excludeIgnored}) {
+            nodes {
+              ...CoralEmbedStream_Comment_SingleComment
+              replies(query: {limit: __LIMIT__, excludeIgnored: $excludeIgnored}) {
+            nodes {
+              ...CoralEmbedStream_Comment_SingleComment
+              replies(query: {limit: __LIMIT__, excludeIgnored: $excludeIgnored}) {
+            nodes {
+              ...CoralEmbedStream_Comment_SingleComment
+              replies(query: {limit: __LIMIT__, excludeIgnored: $excludeIgnored}) {
+            nodes {
+              ...CoralEmbedStream_Comment_SingleComment
+              replies(query: {limit: __LIMIT__, excludeIgnored: $excludeIgnored}) {
+            nodes {
+              ...CoralEmbedStream_Comment_SingleComment
+              replies(query: {limit: __LIMIT__, excludeIgnored: $excludeIgnored}) {
+            nodes {
+              ...CoralEmbedStream_Comment_SingleComment
+              replies(query: {limit: __LIMIT__, excludeIgnored: $excludeIgnored}) {
+            nodes {
+              ...CoralEmbedStream_Comment_SingleComment
+              replies(query: {limit: __LIMIT__, excludeIgnored: $excludeIgnored}) {
+            nodes {
+              ...CoralEmbedStream_Comment_SingleComment
+              replies(query: {limit: __LIMIT__, excludeIgnored: $excludeIgnored}) {
+            nodes {
+              ...CoralEmbedStream_Comment_SingleComment
+              replies(query: {limit: __LIMIT__, excludeIgnored: $excludeIgnored}) {
+            nodes {
+              ...CoralEmbedStream_Comment_SingleComment
+              replies(query: {limit: __LIMIT__, excludeIgnored: $excludeIgnored}) {
+            nodes {
+              ...CoralEmbedStream_Comment_SingleComment
+              replies(query: {limit: __LIMIT__, excludeIgnored: $excludeIgnored}) {
+            nodes {
+              ...CoralEmbedStream_Comment_SingleComment
+              replies(query: {limit: __LIMIT__, excludeIgnored: $excludeIgnored}) {
+            nodes {
+              ...CoralEmbedStream_Comment_SingleComment
+              replies(query: {limit: __LIMIT__, excludeIgnored: $excludeIgnored}) {
+            nodes {
+              ...CoralEmbedStream_Comment_SingleComment
+              replies(query: {limit: __LIMIT__, excludeIgnored: $excludeIgnored}) {
+            nodes {
+              ...CoralEmbedStream_Comment_SingleComment
+              replies(query: {limit: __LIMIT__, excludeIgnored: $excludeIgnored}) {
+            nodes {
+              ...CoralEmbedStream_Comment_SingleComment
+              replies(query: {limit: __LIMIT__, excludeIgnored: $excludeIgnored}) {
+            nodes {
+              ...CoralEmbedStream_Comment_SingleComment
+              replies(query: {limit: __LIMIT__, excludeIgnored: $excludeIgnored}) {
+            nodes {
+              ...CoralEmbedStream_Comment_SingleComment
+              __typename
+            }
+            hasNextPage
+            startCursor
+            endCursor
+            __typename
+          }
+              __typename
+            }
+            hasNextPage
+            startCursor
+            endCursor
+            __typename
+          }
+              __typename
+            }
+            hasNextPage
+            startCursor
+            endCursor
+            __typename
+          }
+              __typename
+            }
+            hasNextPage
+            startCursor
+            endCursor
+            __typename
+          }
+              __typename
+            }
+            hasNextPage
+            startCursor
+            endCursor
+            __typename
+          }
+              __typename
+            }
+            hasNextPage
+            startCursor
+            endCursor
+            __typename
+          }
+              __typename
+            }
+            hasNextPage
+            startCursor
+            endCursor
+            __typename
+          }
+              __typename
+            }
+            hasNextPage
+            startCursor
+            endCursor
+            __typename
+          }
+              __typename
+            }
+            hasNextPage
+            startCursor
+            endCursor
+            __typename
+          }
+              __typename
+            }
+            hasNextPage
+            startCursor
+            endCursor
+            __typename
+          }
+              __typename
+            }
+            hasNextPage
+            startCursor
+            endCursor
+            __typename
+          }
+              __typename
+            }
+            hasNextPage
+            startCursor
+            endCursor
+            __typename
+          }
+              __typename
+            }
+            hasNextPage
+            startCursor
+            endCursor
+            __typename
+          }
+              __typename
+            }
+            hasNextPage
+            startCursor
+            endCursor
+            __typename
+          }
+              __typename
+            }
+            hasNextPage
+            startCursor
+            endCursor
+            __typename
+          }
+              __typename
+            }
+            hasNextPage
+            startCursor
+            endCursor
+            __typename
+          }
+              __typename
+            }
+            hasNextPage
+            startCursor
+            endCursor
+            __typename
+          }
+              __typename
+            }
+            hasNextPage
+            startCursor
+            endCursor
+            __typename
+          }
+              __typename
+            }
+            hasNextPage
+            startCursor
+            endCursor
+            __typename
+          }
               __typename
             }
             hasNextPage
