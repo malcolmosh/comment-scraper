@@ -1,3 +1,0 @@
-There are two types of comments: **Parent Comments** and **Reply Comments**. A parent comment may have any number of reply comments, a reply comments, however, cannot have any reply comments. Any reply to a reply comment is treated as a reply comment under its parent comment.
-Every comment is associated with a commentID/commentSequence.
-By default, only 3 reply comments are shown for each parent comment. Click view all replies will load another 25 reply comments.

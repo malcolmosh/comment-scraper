@@ -544,7 +544,6 @@ fragment TalkSlot_CommentContent_comment on Comment {
 
 fragment TalkPluginRichText_CommentContent_comment on Comment {
   body
-  richTextBody
   __typename
 }
 
@@ -555,7 +554,6 @@ fragment TalkSlot_DraftArea_comment on Comment {
 
 fragment TalkPluginRichText_Editor_comment on Comment {
   body
-  richTextBody
   __typename
 }
 
