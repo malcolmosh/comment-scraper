@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "args": ["https://www.seattletimes.com/seattle-news/weather/wild-weather-with-70-mph-winds-whips-seattle-and-western-washington-with-road-closures-and-power-outages/#comments", "--filepath", "data"]
+            "args": ["https://www.washingtonpost.com/national-security/terror-watchlist-capitol-riot-fbi/2021/01/14/07412814-55f7-11eb-a931-5b162d0d033d_story.html", "--filepath", "data"]
         }
     ]
 }
