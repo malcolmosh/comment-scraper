@@ -2,11 +2,11 @@ import sys, requests, json, os, argparse
 from requests import HTTPError
 from urllib.parse import urlparse
 import functools
+from bs4 import BeautifulSoup
 
 def base_header():
     headers = \
     {
-        "Accept": "*/*",\
         "Accept-Language": "en-US,en;q=0.5",\
         "Accept-Encoding":"gzip, deflate, br",\
         "Connection":"close",\
@@ -17,6 +17,8 @@ def base_header():
 class __SolutionSkeleton__():
     def __init__(self) -> None:
         self.headers = base_header()
+        self.headers["Content-Type"] = "application/json"
+        self.headers["Accept"] = "*/*"
 
     def request_routine(self, url):
         # comment request routine, return the json object of comments
@@ -110,7 +112,7 @@ class CoralByPost(__SolutionSkeleton__):
         return json.dumps(payload)
 
     def __build_request_more_payload__(self, cursor, parentID, assetID):
-        query = self.__load_more_query__().replace('__LIMIT__', self.LIMIT)
+        query = self.__load_more_query__().replace('__LIMIT__', str(self.LIMIT))
         payload = {
             "query": query,
             "variables": {
@@ -126,11 +128,12 @@ class CoralByPost(__SolutionSkeleton__):
         return json.dumps(payload)
 
     def request_routine(self, articleURL):
-        self.headers["Referer"] = articleURL
-        parsedUrl = urlparse(articleURL)
-        articleURL = '{}://{}{}'.format(parsedUrl.scheme, parsedUrl.netloc, parsedUrl.path)
+        #self.headers["Referer"] = articleURL
+        # parsedUrl = urlparse(articleURL)
+        # articleURL = '{}://{}{}'.format(parsedUrl.scheme, parsedUrl.netloc, parsedUrl.path)
         # request initial comments
-        response = requests.post(self.API_ENDPOINT, headers = self.headers, data = self.__build_initial_request_payload__(articleURL))
+        payload = self.__build_initial_request_payload__(articleURL)
+        response = requests.post(self.API_ENDPOINT, headers = self.headers, data = payload)
         try:
             response.raise_for_status()
             data = response.json()
@@ -150,7 +153,7 @@ class CoralByPost(__SolutionSkeleton__):
             cursor = parentNode['endCursor']
             while hasNextPage:
                 requestCnt += 1
-                response = requests.post(self.API_ENDPOINT, headers = self.headers, data = self.__build_request_more_payload__(self.LIMIT, cursor, parentID, assetID))
+                response = requests.post(self.API_ENDPOINT, headers = self.headers, data = self.__build_request_more_payload__(cursor, parentID, assetID))
                 try:
                     response.raise_for_status()
                     replies = response.json()
@@ -166,6 +169,7 @@ class CoralByPost(__SolutionSkeleton__):
                 if 'replies' in cmt:
                     load_replies(assetID, cmt['replies'], cmt['id'])
         load_replies(assetID, comments, None)
+        self.info('{} comments loaded, {} requests made for article {}'.format(cnt, requestCnt,articleURL))
         return data
 
 class WashingtonPost(CoralByPost):
@@ -180,6 +184,26 @@ class SeattleTimes(CoralByPost):
 class TheIntercept(CoralByPost):
     def __init__(self, batchSize=500) -> None:
         super().__init__("https://talk.theintercept.com/api/v1/graph/ql", batchSize=batchSize)
+    
+    def request_routine(self, articleURL):
+        headers = base_header()
+        headers["Host"] = "theintercept.com"
+        headers["Accept"] = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
+        response = requests.get(articleURL, headers =headers)
+        s = response.content.decode(response.encoding)
+        idx = s.find('post_id')
+        if idx == -1:
+            self.error('Cannot find post id in {}.'.format(articleURL))
+            return
+        postID = []
+        while not s[idx].isdigit():
+            idx += 1
+        while idx < len(s) and s[idx].isdigit():
+            postID.append(s[idx])
+            idx += 1
+        postID = ''.join(postID)
+
+        return super().request_routine("https://theintercept.com/?p={}".format(postID))
 
 class CommentScraper:
     def __init__(self) -> None:
@@ -213,6 +237,7 @@ class CommentScraper:
 
     def load_comments(self, articleURL, filepath=None, filename=None):
         parsedUrl = urlparse(articleURL)
+        articleURL = '{}://{}{}'.format(parsedUrl.scheme, parsedUrl.netloc, parsedUrl.path)
         output = self.__build_output__(parsedUrl, filepath, filename)
 
         sol = self.__get_solution__(parsedUrl.netloc)
