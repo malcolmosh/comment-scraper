@@ -1,8 +1,13 @@
-import sys, requests, json, os, argparse
+import sys, requests, json, os, argparse, random, time
+from typing import ClassVar
 from requests import HTTPError
 from urllib.parse import urlparse
 import functools
 from bs4 import BeautifulSoup
+from typing import Tuple
+from requests.api import options
+from selenium import webdriver
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
 
 def base_header():
     headers = \
@@ -14,16 +19,7 @@ def base_header():
     }
     return headers
 
-class __SolutionSkeleton__():
-    def __init__(self) -> None:
-        self.headers = base_header()
-        self.headers["Content-Type"] = "application/json"
-        self.headers["Accept"] = "*/*"
-
-    def request_routine(self, url):
-        # comment request routine, return the json object of comments
-        raise NotImplementedError
-
+class Message():
     def error(self, msg):
         print('Error: \n', msg)
     
@@ -33,12 +29,29 @@ class __SolutionSkeleton__():
     def info(self, msg):
         print('Info: \n', msg)
 
+    def debug(self, msg):
+        print('Debug: \n', msg)
+
+class __SolutionSkeleton__(Message):
+    def __init__(self) -> None:
+        self.headers = base_header()
+        self.headers["Content-Type"] = "application/json"
+        self.headers["Accept"] = "*/*"
+
+        self.targetUrl = None
+
+    def request_routine(self, url):
+        # comment request routine, return the json object of comments
+        self.targetUrl = url
+
 class NewYorkTimes(__SolutionSkeleton__):
     def __init__(self) -> None:
         super().__init__()
         self.headers["Host"] = "www.nytimes.com"
 
     def request_routine(self, articleURL):
+        super().request_routine(articleURL)
+
         self.headers["Referer"] = articleURL
         commentsURL = "https://www.nytimes.com/svc/community/V3/requestHandler?url={articleURL}&method=get&commentSequence=0&offset=0&includeReplies=true&sort=oldest&cmd=GetCommentsAll&limit=-1".format(articleURL=articleURL)
 
@@ -131,6 +144,7 @@ class CoralByPost(__SolutionSkeleton__):
         return json.dumps(payload)
 
     def request_routine(self, articleURL):
+        super().request_routine(articleURL)
         #self.headers["Referer"] = articleURL
         # parsedUrl = urlparse(articleURL)
         # articleURL = '{}://{}{}'.format(parsedUrl.scheme, parsedUrl.netloc, parsedUrl.path)
@@ -169,8 +183,17 @@ class CoralByPost(__SolutionSkeleton__):
 
             for cmt in parentNode['nodes']:
                 cnt += 1
+                if cmt['replyCount'] > 0 and 'replies' not in cmt:
+                    cmt['replies'] = {
+                            "nodes": [],
+                            "hasNextPage": True,
+                            "startCursor": None,
+                            "endCursor": cmt['created_at'],
+                            "__typename": "CommentConnection"
+                        }
                 if 'replies' in cmt:
                     load_replies(assetID, cmt['replies'], cmt['id'])
+
         load_replies(assetID, comments, None)
         self.info('{} comments loaded, {} requests made for article {}'.format(cnt, requestCnt,articleURL))
         return data
@@ -178,7 +201,6 @@ class CoralByPost(__SolutionSkeleton__):
 class WashingtonPost(CoralByPost):
     def __init__(self, batchSize=500) -> None:
         super().__init__("https://www.washingtonpost.com/talk/api/v1/graph/ql", batchSize=batchSize)
-        self.headers["Origin"] = "https://www.washingtonpost.com"
 
 class SeattleTimes(CoralByPost):
     def __init__(self, batchSize=500) -> None:
@@ -192,8 +214,9 @@ class TheIntercept(CoralByPost):
         headers = base_header()
         headers["Host"] = "theintercept.com"
         headers["Accept"] = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
+        headers['Accept-Encoding'] = 'identity'
         response = requests.get(articleURL, headers =headers)
-        s = response.content.decode(response.encoding)
+        s = response.content.decode(encoding=response.encoding)
         idx = s.find('post_id')
         if idx == -1:
             self.error('Cannot find post id in {}.'.format(articleURL))
@@ -225,14 +248,208 @@ class NUnl(CoralByPost):
 
         return super().request_routine("https://www.nu.nl/artikel/{}/redirect.html".format(postID))
 
-SOLUTION_MAP = {'www.washingtonpost.com': WashingtonPost(), 'www.seattletimes.com': SeattleTimes(), 'www.nytimes.com': NewYorkTimes(), 'theintercept.com': TheIntercept(), 'www.deseret.com': DeseretNews(), 'www.nu.nl': NUnl()}
+class SpotIM(__SolutionSkeleton__):
+    def __init__(self, maxDepth = 10, maxReply = 2) -> None:
+        """Initiate a comment crawler for Spot.IM system.
 
-class CommentScraper:
+        Args:
+            maxDepth (int, optional): the max depth of replies to request. A root comment has depth 0, and a reply has depth 1 + the depth of its parent. Defaults to 10.
+            maxReply (int, optional): the maximum number of replies to request for a reply message. By default, the Spot.IM system returns at most two replies under each reply message. A larger maxRely will significantly increase the number of requests to be sent. Use -1 to request all replies. Defaults to 2.
+        """
+        super().__init__()
+
+        self.maxDepth = maxDepth
+        self.maxReply = maxReply
+        self.API_ENDPOINT = "https://api-2-0.spot.im/v1.0.0/conversation/read"
+        self.AUTH_ENDPOINT = "https://api-2-0.spot.im/v1.0.0/authenticate"
+        self.BATCH_SIZE = 200
+        parsedUrl = urlparse(self.API_ENDPOINT)
+        self.headers["Host"] = parsedUrl.netloc
+        self.cookies = {}
+        firefoxOption = webdriver.FirefoxOptions()
+        firefoxOption.headless = True
+        self.driver = webdriver.Firefox(options=firefoxOption)
+        self.driver.set_page_load_timeout(15)
+        self.driver.set_script_timeout(15)
+
+    def __random_id__(self) -> str:
+        """Randomly generate a 32 hex digit random id in the format of "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx".
+
+        Returns:
+            str: random id
+        """
+        id = ''.join([hex(random.randint(0, 15))[-1] for _ in range(32)])
+        return '{}-{}-{}-{}-{}'.format(id[:8], id[8:12], id[12:16], id[16:20], id[20:])
+
+    def __authenticate__(self)->str:
+        """Request an access toke.
+        # Args:
+        #     postID (str): post ID of the target article page.
+        #     spotID (str): spot ID of the target website.
+        #     deviceID (str): device ID of the browser tab, can be generated randomly.
+
+        Returns:
+            str: access token
+        """
+        response = requests.post(self.AUTH_ENDPOINT, headers = self.headers)
+        try:
+            response.raise_for_status()
+        except HTTPError as e:
+            self.error("Failed to get access token from Spot.IM: \n{}".format(repr(e)))
+            return None
+        return response.headers['x-access-token']
+    
+    def __load_comments__(self)->dict:
+        """Load comments of the target post.
+
+        Returns:
+            dict: json object of the received comments.
+        """
+        payload = {"sort_by":"oldest","offset":0,"count":self.BATCH_SIZE,"depth":self.maxDepth}
+        data = requests.post(self.API_ENDPOINT, headers = self.headers, cookies = self.cookies, data=json.dumps(payload)).json()
+        requestCnt = 1
+        hasNxt = data['conversation']['has_next']
+        offset = data['conversation']['offset']
+        while hasNxt:
+            time.sleep(random.random())
+            payload['offset'] = offset
+            dataNxt = requests.post(self.API_ENDPOINT, headers = self.headers, cookies = self.cookies, data=json.dumps(payload)).json()
+            data['conversation']['comments'].extend(dataNxt['conversation']['comments'])
+            hasNxt = dataNxt['conversation']['has_next']
+            offset = dataNxt['conversation']['offset']
+            requestCnt += 1
+
+            self.debug('{} requests sent, {} comments received for target: {}.'.format(requestCnt, len(data['conversation']['comments']), self.targetUrl))
+
+        cmtCnt = 0
+        for cmt in data['conversation']['comments']:
+            cmtCnt += 1
+            if cmt['replies_count'] > 0 and cmt['depth'] < self.maxDepth:
+                (childRequestCnt, childCmtCnt) = self.__load_replies__(cmt)
+                requestCnt += childRequestCnt
+                cmtCnt += childCmtCnt
+
+        self.info('{} requests made, {} comments received for target: {}.'.format(requestCnt, cmtCnt, self.targetUrl))
+        return data
+
+    def __load_replies__(self, parentNode: dict) -> Tuple[int, int]:
+        """Load replies of a parent message.
+
+        Args:
+            parentNode (dict): parent node.
+
+        Returns:
+            Tuple[int, int]: (# requests sent, # replies received)
+        """
+        requestCnt, cmtCnt = 0, 0
+        payload = {"sort_by":"oldest","offset":0,"count":self.BATCH_SIZE,"depth":self.maxDepth}
+        payload["parent_id"] = parentNode["id"]
+
+        hasNxt = parentNode['has_next']
+        offset = parentNode['offset']
+        while hasNxt and len(parentNode['replies']) < self.maxReply:
+            time.sleep(random.random())
+            requestCnt += 1
+            payload['offset'] = offset
+            dataNxt = requests.post(self.API_ENDPOINT, headers = self.headers, cookies = self.cookies, data=json.dumps(payload)).json()
+            parentNode['replies'].extend(dataNxt['conversation']['comments'])
+            hasNxt = dataNxt['conversation']['has_next']
+            offset = dataNxt['conversation']['offset']
+            requestCnt += 1
+
+            self.debug('{} requests sent, {} replies received for comment id {} in target: {}.'.format(requestCnt, len(parentNode['replies']), parentNode["id"], self.targetUrl))
+
+        for cmt in parentNode['replies']:
+            cmtCnt += 1
+            if cmt['replies_count'] > 0 and cmt['depth'] < self.maxDepth:
+                (childRequestCnt, childCmtCnt) = self.__load_replies__(cmt)
+                requestCnt += childRequestCnt
+                cmtCnt += childCmtCnt
+
+        return (requestCnt, cmtCnt)
+
+    def request_routine(self, articleURL: str) -> None:
+        """Request comments from a url.
+
+        Args:
+            articleURL (str): target url.
+        """
+        super().request_routine(articleURL)
+        try:
+            self.driver.get(articleURL)
+        except TimeoutException:
+            pass
+        
+        try:
+            # scroll down
+            scrollCnt = 1
+            lenOfPage = self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight); return document.body.scrollHeight;")
+            match=False
+            while not match and scrollCnt < 10:
+                lastCount = lenOfPage
+                time.sleep(1)
+                lenOfPage = self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight); return document.body.scrollHeight;")
+                if lastCount==lenOfPage:
+                    match=True
+                scrollCnt += 1
+
+            e = self.driver.find_element_by_xpath('//*[@data-post-id and @data-spot-id]')
+            spotID = e.get_attribute('data-spot-id')
+            postID = e.get_attribute('data-post-id')
+            deviceID = self.__random_id__()
+            viewID = self.__random_id__()
+        except NoSuchElementException:
+            self.error('Cannot find spot ID and post ID in url: {}'.format(articleURL))
+            return
+
+        self.headers["x-post-id"] = postID
+        self.headers["x-spot-id"] = spotID
+        self.headers["x-spotim-device-uuid"] = deviceID
+
+        token = self.__authenticate__()
+        if token:
+            self.headers["x-spotim-page-view-id"] = viewID
+            self.cookies["device_uuid"] = deviceID
+            self.cookies["access_token"] = token
+
+            return self.__load_comments__()
+
+SOLUTION_MAP = {'www.washingtonpost.com': WashingtonPost, 'www.seattletimes.com': SeattleTimes, 'www.nytimes.com': NewYorkTimes, 'theintercept.com': TheIntercept, 'www.deseret.com': DeseretNews, 'www.nu.nl': NUnl, 'Spot.IM': SpotIM}
+
+class CommentScraper(Message):
     def __init__(self) -> None:
         pass
-    
-    def __get_solution__(self, host):
-        return SOLUTION_MAP.get(host, None)
+
+    def __is_spot_im__(self, url: str) -> bool:
+        """Search if Spot.IM keywords exist in HTML source codes of the input url.
+
+        Args:
+            url (str): target page.
+
+        Returns:
+            bool: wether the target page has Spot.IM keywords or not.
+        """
+        headers = base_header()
+        headers['Accept'] = 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
+        headers['Accept-Encoding'] = 'identity'
+        response = requests.get(url, headers = headers)
+        try:
+            response.raise_for_status()
+        except HTTPError as e:
+            self.error("Failed to request HTML source codes from {}: \n{}".format(url, repr(e)))
+            return False
+
+        source = response.content.decode(encoding=response.encoding)
+        source = source.lower()
+        return 'spotim' in source or 'spot-im' in source
+
+    def __get_solution__(self, url, host):
+        if host in SOLUTION_MAP:
+            return SOLUTION_MAP[host]()
+        elif self.__is_spot_im__(url):
+            return SOLUTION_MAP['Spot.IM']()
+        else:
+            return None
 
     def __build_output__(self, parsedUrl, filepath, filename):
         if filename:
@@ -262,7 +479,7 @@ class CommentScraper:
         articleURL = '{}://{}{}'.format(parsedUrl.scheme, parsedUrl.netloc, parsedUrl.path)
         output = self.__build_output__(parsedUrl, filepath, filename)
 
-        sol = self.__get_solution__(parsedUrl.netloc)
+        sol = self.__get_solution__(articleURL, parsedUrl.netloc)
         if sol:
             comments = sol.request_routine(articleURL)
             if comments:
@@ -270,12 +487,12 @@ class CommentScraper:
                     try:
                         os.makedirs(os.path.dirname(output))
                     except Exception as e:
-                        print(repr(e))
+                        self.error(repr(e))
                         return
                 with open(output, 'w+', encoding='utf-8') as f:
                     json.dump(comments, f, ensure_ascii=False, indent=4)
         else:
-            print(parsedUrl.netloc, ' is not supported.')
+            self.error('{} is not supported.'.format(parsedUrl.netloc))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Scrape comments from the input article URL.')
