@@ -1,36 +1,10 @@
 import sys, requests, json, os, argparse, random, time
-from typing import ClassVar
 from requests import HTTPError
 from urllib.parse import urlparse
-import functools
-from bs4 import BeautifulSoup
 from typing import Tuple
-from requests.api import options
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
-
-def base_header():
-    headers = \
-    {
-        "Accept-Language": "en-US,en;q=0.5",\
-        "Accept-Encoding":"gzip, deflate, br",\
-        "Connection":"close",\
-        "User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:84.0) Gecko/20100101 Firefox/84.0"
-    }
-    return headers
-
-class Message():
-    def error(self, msg):
-        print('Error: \n', msg)
-    
-    def warn(self, msg):
-        print('Warn: \n', msg)
-
-    def info(self, msg):
-        print('Info: \n', msg)
-
-    def debug(self, msg):
-        print('Debug: \n', msg)
+from utility import base_header, Message
 
 class __SolutionSkeleton__(Message):
     def __init__(self) -> None:
@@ -313,7 +287,13 @@ class SpotIM(__SolutionSkeleton__):
         while hasNxt:
             time.sleep(random.random())
             payload['offset'] = offset
-            dataNxt = requests.post(self.API_ENDPOINT, headers = self.headers, cookies = self.cookies, data=json.dumps(payload)).json()
+            response = requests.post(self.API_ENDPOINT, headers = self.headers, cookies = self.cookies, data=json.dumps(payload))
+            try:
+                response.raise_for_status()
+                dataNxt = response.json()
+            except HTTPError as e:
+                self.error("Failed to get comments for article: {}\n{}".format(self.targetUrl, repr(e)))
+                return
             data['conversation']['comments'].extend(dataNxt['conversation']['comments'])
             hasNxt = dataNxt['conversation']['has_next']
             offset = dataNxt['conversation']['offset']
@@ -351,7 +331,13 @@ class SpotIM(__SolutionSkeleton__):
             time.sleep(random.random())
             requestCnt += 1
             payload['offset'] = offset
-            dataNxt = requests.post(self.API_ENDPOINT, headers = self.headers, cookies = self.cookies, data=json.dumps(payload)).json()
+            response = requests.post(self.API_ENDPOINT, headers = self.headers, cookies = self.cookies, data=json.dumps(payload))
+            try:
+                response.raise_for_status()
+                dataNxt = response.json()
+            except HTTPError as e:
+                self.error("Failed to get comments for article: {}\n{}".format(self.targetUrl, repr(e)))
+                return
             parentNode['replies'].extend(dataNxt['conversation']['comments'])
             hasNxt = dataNxt['conversation']['has_next']
             offset = dataNxt['conversation']['offset']
