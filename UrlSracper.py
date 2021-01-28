@@ -65,7 +65,7 @@ class UrlScraper(Message):
             bool: add success or not.
         """
         try:
-            self.dbCursor.execute("INSERT INTO url_queue(url) VALUES (%s)", (url, ))
+            self.dbCursor.execute("INSERT INTO url_queue(url, status) VALUES (%s, %s)", (url, -2))
         except mysql.connector.IntegrityError as err:
             return False
         return True
@@ -83,7 +83,7 @@ class UrlScraper(Message):
             int: number of updated rows.
         """
         publishedTime = dateutil.parser.parse(publishedTime).strftime('%Y-%m-%d %H:%M:%S')
-        self.dbCursor.execute("UPDATE url_queue SET date_hash = %(date_hash)s, host = %(host)s, title = %(title)s, topic = %(topic)s, category = %(category)s, published_time = %(published_time)s WHERE url = %(url)s;", {'url': url, 'title': title, 'published_time': publishedTime, 'topic': topic, 'category': category, 'host': urlparse(url).hostname, 'date_hash': self.__date_url_hash__(publishedTime, url)})
+        self.dbCursor.execute("UPDATE url_queue SET status = %(status)s, date_hash = %(date_hash)s, host = %(host)s, title = %(title)s, topic = %(topic)s, category = %(category)s, published_time = %(published_time)s WHERE url = %(url)s;", {'url': url, 'status': 0, 'title': title, 'published_time': publishedTime, 'topic': topic, 'category': category, 'host': urlparse(url).hostname, 'date_hash': self.__date_url_hash__(publishedTime, url)})
         return self.dbCursor.rowcount
 
     def find_url(self, url:str) -> bool:

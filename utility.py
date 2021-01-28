@@ -1,5 +1,7 @@
-import requests
+import requests, mysql.connector
 from requests import HTTPError
+from mysql.connector import errorcode
+
 def base_header():
     headers = \
     {
@@ -22,3 +24,14 @@ class Message():
 
     def debug(self, msg):
         print('Debug: \n', msg)
+
+class MySQL(Message):
+    def __init__(self, host='localhost', port=3306, user='root', password='root', database='mysql') -> None:
+        self.DBCon = None
+        try:
+            self.DBCon = mysql.connector.connect(host=host, port=port, database=database, user=user, password=password)
+            self.DBCon.autocommit = True
+            self.DBCursor = self.DBCon.cursor(dictionary=True)
+        except mysql.connector.Error as err:
+            self.error(repr(err))
+            exit()
