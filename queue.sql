@@ -5,11 +5,14 @@ CREATE TABLE url_queue (
     host VARCHAR(128),
     title VARCHAR(256),
     topic VARCHAR(256),
-    published_time TIMESTAMP,
+    category VARCHAR(64),
+    published_time DATETIME,
     insert_time TIMESTAMP DEFAULT NOW(),
     status int DEFAULT 0,
     last_work_time TIMESTAMP, -- NOW() when status 0 -> 1
     last_finish_time TIMESTAMP, -- NOW() when status 1 -> 2
     hit_comment BOOLEAN,
-    error_message VARCHAR
+    error_message TEXT
 );
+
+

@@ -7,11 +7,11 @@ from mysql.connector import errorcode
 from urllib.parse import urlparse
 
 class UrlScraper(Message):
-    def __init__(self, DBHost='localhost', port=3306, DBName='mysql', DBUserName='mysql', DBPassword='mysql', updateInterval=120, batchSize=15, outputPath=None) -> None:
+    def __init__(self, DBHost='localhost', DBPort=3306, DBName='mysql', DBUserName='mysql', DBPassword='mysql', updateInterval=120, batchSize=15, outputPath=None) -> None:
         super().__init__()
         self.DBCon = None
         try:
-            self.DBCon = mysql.connector.connect(host=DBHost, port=port, database=DBName, user=DBUserName, password=DBPassword)
+            self.DBCon = mysql.connector.connect(host=DBHost, port=DBPort, database=DBName, user=DBUserName, password=DBPassword)
             self.DBCon.autocommit = True
             self.dbCursor = self.DBCon.cursor()
         except mysql.connector.Error as err:
