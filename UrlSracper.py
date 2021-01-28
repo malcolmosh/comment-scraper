@@ -126,8 +126,8 @@ class UrlScraper(Message):
             self.info('The update process is finished.')
 
 class WashingtonPostUrlScraper(UrlScraper):
-    def __init__(self, DBHost, DBName, DBUserName, DBPassword, updateInterval=60, outputPath=None) -> None:
-        super().__init__(DBHost=DBHost, DBName=DBName, DBUserName=DBUserName, DBPassword=DBPassword, updateInterval=updateInterval, outputPath=outputPath)
+    def __init__(self, DBHost='localhost', DBPort=3306, DBName='mysql', DBUserName='mysql', DBPassword='mysql', updateInterval=120, outputPath=None) -> None:
+        super().__init__(DBHost=DBHost, DBPort=DBPort, DBName=DBName, DBUserName=DBUserName, DBPassword=DBPassword, updateInterval=updateInterval, outputPath=outputPath)
         self.API_ENDPOINT = "https://www.washingtonpost.com/pb/api/v2/render/feature/section/story-list?content_origin=prism-query&url=prism://prism.query/site-articles-only,/{section}&offset={offset}&limit={limit}"
         self.sections = ['politics', 'opinions', 'technology', 'world', 'sports', 'business', 'national']
 
