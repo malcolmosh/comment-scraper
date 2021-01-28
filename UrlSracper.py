@@ -7,11 +7,11 @@ from mysql.connector import errorcode
 from urllib.parse import urlparse
 
 class UrlScraper(Message):
-    def __init__(self, DBHost='localhost', DBPort=3306, DBName='mysql', DBUserName='mysql', DBPassword='mysql', updateInterval=120, batchSize=15, outputPath=None) -> None:
+    def __init__(self, DBHost='localhost', DBPort=3306, DBName='mysql', DBUser='mysql', DBPassword='mysql', updateInterval=120, batchSize=15, outputPath=None) -> None:
         super().__init__()
         self.DBCon = None
         try:
-            self.DBCon = mysql.connector.connect(host=DBHost, port=DBPort, database=DBName, user=DBUserName, password=DBPassword)
+            self.DBCon = mysql.connector.connect(host=DBHost, port=DBPort, database=DBName, user=DBUser, password=DBPassword)
             self.DBCon.autocommit = True
             self.dbCursor = self.DBCon.cursor()
         except mysql.connector.Error as err:
@@ -126,8 +126,8 @@ class UrlScraper(Message):
             self.info('The update process is finished.')
 
 class WashingtonPostUrlScraper(UrlScraper):
-    def __init__(self, DBHost='localhost', DBPort=3306, DBName='mysql', DBUserName='mysql', DBPassword='mysql', updateInterval=120, outputPath=None) -> None:
-        super().__init__(DBHost=DBHost, DBPort=DBPort, DBName=DBName, DBUserName=DBUserName, DBPassword=DBPassword, updateInterval=updateInterval, outputPath=outputPath)
+    def __init__(self, DBHost='localhost', DBPort=3306, DBName='mysql', DBUser='mysql', DBPassword='mysql', updateInterval=120, outputPath=None) -> None:
+        super().__init__(DBHost=DBHost, DBPort=DBPort, DBName=DBName, DBUser=DBUser, DBPassword=DBPassword, updateInterval=updateInterval, outputPath=outputPath)
         self.API_ENDPOINT = "https://www.washingtonpost.com/pb/api/v2/render/feature/section/story-list?content_origin=prism-query&url=prism://prism.query/site-articles-only,/{section}&offset={offset}&limit={limit}"
         self.sections = ['politics', 'opinions', 'technology', 'world', 'sports', 'business', 'national']
 
@@ -208,7 +208,7 @@ class WashingtonPostUrlScraper(UrlScraper):
 
 
 if __name__ == '__main__':
-    wsp = WashingtonPostUrlScraper(updateInterval=30, DBHost='localhost', DBName='comment-crawler', DBUserName='root', DBPassword='root', outputPath='D:/request-based-comment-crawler/page')
+    wsp = WashingtonPostUrlScraper(updateInterval=30, DBHost='localhost', DBName='comment-crawler', DBUser='root', DBPassword='root', outputPath='D:/request-based-comment-crawler/page')
     wsp.main_routine()
 
 
