@@ -1,3 +1,4 @@
+from logging import exception
 from lxml import etree
 import sys, requests, json, os, argparse, random, time, mysql.connector, hashlib, dateutil.parser
 from requests.models import Response
@@ -10,7 +11,7 @@ from utility import Message, MySQL
 from CommentScraper import CommentScraper
 
 class CommentScraperTask(MySQL):
-    def __init__(self, DBHost='localhost', DBPort=3306, DBUser='root', DBPassword='root', DBName='mysql', outputPath=None) -> None:
+    def __init__(self, DBHost='localhost', DBPort=3306, DBUser='root', DBPassword='root', DBName='mysql', outputPath=None, interval=5) -> None:
         super().__init__(host=DBHost, port=DBPort, user=DBUser, password=DBPassword, database=DBName)
         self.url = None
         self.dateHash = None
@@ -18,6 +19,7 @@ class CommentScraperTask(MySQL):
         self.errMsg = None
         self.scraper = CommentScraper()
         self.outputPath = outputPath
+        self.interval = interval
 
     def request_task(self):
         self.success = True
@@ -69,16 +71,23 @@ class CommentScraperTask(MySQL):
 
     def run(self):
         while 1:
-            if self.request_task():
-                self.perform_task()
-                self.complete_task()
-            else:
-                self.info('No more task, I am going to sleep for 30 minutes.')
-                cnt = 30
-                while cnt > 0:
-                    self.debug('Sleeping, wake up in {} minutes.'.format(cnt))
+            try:
+                if self.request_task():
+                    self.perform_task()
+                    self.complete_task()
+                    time.sleep(random.randint(0, self.interval))
+                else:
+                    self.info('No more task, I am going to sleep for 30 minutes.')
+                    cnt = 30
+                    while cnt > 0:
+                        self.debug('Sleeping, wake up in {} minutes.'.format(cnt))
+                        time.sleep(60)
+                        cnt -= 1
+            except Exception as e:
+                self.error('Task loop exception: {}'.format(repr(e)))
+                for i in range(10, 0, -1):
+                    self.info('Restart task loop in {} minute(s)...'.format(i))
                     time.sleep(60)
-                    cnt -= 1
 
 
 if __name__ == "__main__":
