@@ -172,7 +172,8 @@ class CoralByPost(__SolutionSkeleton__):
 
             load_replies(assetID, comments, None)
             self.info('{} comments loaded, {} requests made for article {}'.format(cnt, requestCnt,articleURL))
-            return data
+            if cnt > 0:
+                return data
         except Exception as e:
             self.error('Failed to load comments for {}: {}'.format(articleURL, repr(e)))
             return None
@@ -315,7 +316,8 @@ class SpotIM(__SolutionSkeleton__):
                 cmtCnt += childCmtCnt
 
         self.info('{} requests made, {} comments received for target: {}.'.format(requestCnt, cmtCnt, self.targetUrl))
-        return data
+        if cmtCnt > 0:
+            return data
 
     def __load_replies__(self, parentNode: dict) -> Tuple[int, int]:
         """Load replies of a parent message.
