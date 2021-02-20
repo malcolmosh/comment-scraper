@@ -29,10 +29,10 @@ class NewYorkTimes(__SolutionSkeleton__):
         self.headers["Referer"] = articleURL
         commentsURL = "https://www.nytimes.com/svc/community/V3/requestHandler?url={articleURL}&method=get&commentSequence=0&offset=0&includeReplies=true&sort=oldest&cmd=GetCommentsAll&limit=-1".format(articleURL=articleURL)
 
-        response = requests.get(commentsURL, headers = self.headers)
         try:
+            response = requests.get(commentsURL, headers = self.headers)
             response.raise_for_status()
-        except HTTPError as e:
+        except Exception as e:
             self.error("Failed to get comments for article: {}\n{}".format(articleURL, repr(e)))
             return
         
@@ -54,10 +54,10 @@ class NewYorkTimes(__SolutionSkeleton__):
     def __get_reply_comments__(self, articleURL, commentSequence, offset, limit):
         commentsURL = "https://www.nytimes.com/svc/community/V3/requestHandler?url={articleURL}&method=get&commentSequence={commentSequence}&offset={offset}&limit={limit}&cmd=GetRepliesBySequence".format(articleURL=articleURL, commentSequence=commentSequence, offset=offset, limit=limit)
 
-        response = requests.get(commentsURL, headers = self.headers)
         try:
+            response = requests.get(commentsURL, headers = self.headers)
             response.raise_for_status()
-        except HTTPError as e:
+        except Exception as e:
             self.error("Failed to get reply comments for for comment {} of article: {}\n{}".format(commentSequence, articleURL, repr(e)))
             return None
         return response.json()['results']['comments'][0]['replies']
@@ -88,6 +88,7 @@ class CoralByPost(__SolutionSkeleton__):
     def __build_initial_request_payload__(self, url):
         query = self.__load_initial_query__().replace('__LIMIT__', str(self.LIMIT))
         payload = {
+            "operationName": "CoralEmbedStream_Embed",
             "query": query,
             "variables": {
                 "assetId": "",
@@ -104,6 +105,7 @@ class CoralByPost(__SolutionSkeleton__):
     def __build_request_more_payload__(self, cursor, parentID, assetID):
         query = self.__load_more_query__().replace('__LIMIT__', str(self.LIMIT))
         payload = {
+            "operationName": "CoralEmbedStream_LoadMoreComments",
             "query": query,
             "variables": {
                 "limit": self.LIMIT,
@@ -124,53 +126,56 @@ class CoralByPost(__SolutionSkeleton__):
         # articleURL = '{}://{}{}'.format(parsedUrl.scheme, parsedUrl.netloc, parsedUrl.path)
         # request initial comments
         payload = self.__build_initial_request_payload__(articleURL)
-        response = requests.post(self.API_ENDPOINT, headers = self.headers, data = payload)
         try:
+            response = requests.post(self.API_ENDPOINT, headers = self.headers, data = payload)
             response.raise_for_status()
             data = response.json()
-        except HTTPError as e:
+        except Exception as e:
             self.error("Failed to get comments for article: {}\n{}".format(articleURL, repr(e)))
             return
-    
-        assetID = data['data']['asset']['id']
-        comments = data['data']['asset']['comments']
+        try:
+            assetID = data['data']['asset']['id']
+            comments = data['data']['asset']['comments']
 
-        cnt = 0
-        requestCnt = 1
-        # dfs each comment and load all replies as needed.
-        def load_replies(assetID, parentNode, parentID):
-            nonlocal cnt, requestCnt
-            hasNextPage = parentNode['hasNextPage']
-            cursor = parentNode['endCursor']
-            while hasNextPage:
-                requestCnt += 1
-                response = requests.post(self.API_ENDPOINT, headers = self.headers, data = self.__build_request_more_payload__(cursor, parentID, assetID))
-                try:
-                    response.raise_for_status()
-                    replies = response.json()
-                except HTTPError as e:
-                    self.error("Failed to get part of comments for article: {}\n{}".format(articleURL, repr(e)))
-                    break
-                parentNode['nodes'] += replies['data']['comments']['nodes']
-                hasNextPage = replies['data']['comments']['hasNextPage']
-                cursor = replies['data']['comments']['endCursor']
+            cnt = 0
+            requestCnt = 1
+            # dfs each comment and load all replies as needed.
+            def load_replies(assetID, parentNode, parentID):
+                nonlocal cnt, requestCnt
+                hasNextPage = parentNode['hasNextPage']
+                cursor = parentNode['endCursor']
+                while hasNextPage:
+                    requestCnt += 1
+                    try:
+                        response = requests.post(self.API_ENDPOINT, headers = self.headers, data = self.__build_request_more_payload__(cursor, parentID, assetID))
+                        response.raise_for_status()
+                        replies = response.json()
+                    except Exception as e:
+                        self.error("Failed to get part of comments for article: {}\n{}".format(articleURL, repr(e)))
+                        break
+                    parentNode['nodes'] += replies['data']['comments']['nodes']
+                    hasNextPage = replies['data']['comments']['hasNextPage']
+                    cursor = replies['data']['comments']['endCursor']
 
-            for cmt in parentNode['nodes']:
-                cnt += 1
-                if cmt['replyCount'] > 0 and 'replies' not in cmt:
-                    cmt['replies'] = {
-                            "nodes": [],
-                            "hasNextPage": True,
-                            "startCursor": None,
-                            "endCursor": cmt['created_at'],
-                            "__typename": "CommentConnection"
-                        }
-                if 'replies' in cmt:
-                    load_replies(assetID, cmt['replies'], cmt['id'])
+                for cmt in parentNode['nodes']:
+                    cnt += 1
+                    if cmt['replyCount'] > 0 and 'replies' not in cmt:
+                        cmt['replies'] = {
+                                "nodes": [],
+                                "hasNextPage": True,
+                                "startCursor": None,
+                                "endCursor": cmt['created_at'],
+                                "__typename": "CommentConnection"
+                            }
+                    if 'replies' in cmt:
+                        load_replies(assetID, cmt['replies'], cmt['id'])
 
-        load_replies(assetID, comments, None)
-        self.info('{} comments loaded, {} requests made for article {}'.format(cnt, requestCnt,articleURL))
-        return data
+            load_replies(assetID, comments, None)
+            self.info('{} comments loaded, {} requests made for article {}'.format(cnt, requestCnt,articleURL))
+            return data
+        except Exception as e:
+            self.error('Failed to load comments for {}: {}'.format(articleURL, repr(e)))
+            return None
 
 class WashingtonPost(CoralByPost):
     def __init__(self, batchSize=500) -> None:
@@ -265,10 +270,10 @@ class SpotIM(__SolutionSkeleton__):
         Returns:
             str: access token
         """
-        response = requests.post(self.AUTH_ENDPOINT, headers = self.headers)
         try:
+            response = requests.post(self.AUTH_ENDPOINT, headers = self.headers)
             response.raise_for_status()
-        except HTTPError as e:
+        except Exception as e:
             self.error("Failed to get access token from Spot.IM: \n{}".format(repr(e)))
             return None
         return response.headers['x-access-token']
@@ -287,11 +292,11 @@ class SpotIM(__SolutionSkeleton__):
         while hasNxt:
             time.sleep(random.random())
             payload['offset'] = offset
-            response = requests.post(self.API_ENDPOINT, headers = self.headers, cookies = self.cookies, data=json.dumps(payload))
             try:
+                response = requests.post(self.API_ENDPOINT, headers = self.headers, cookies = self.cookies, data=json.dumps(payload))
                 response.raise_for_status()
                 dataNxt = response.json()
-            except HTTPError as e:
+            except Exception as e:
                 self.error("Failed to get comments for article: {}\n{}".format(self.targetUrl, repr(e)))
                 return
             data['conversation']['comments'].extend(dataNxt['conversation']['comments'])
@@ -331,11 +336,11 @@ class SpotIM(__SolutionSkeleton__):
             time.sleep(random.random())
             requestCnt += 1
             payload['offset'] = offset
-            response = requests.post(self.API_ENDPOINT, headers = self.headers, cookies = self.cookies, data=json.dumps(payload))
             try:
+                response = requests.post(self.API_ENDPOINT, headers = self.headers, cookies = self.cookies, data=json.dumps(payload))
                 response.raise_for_status()
                 dataNxt = response.json()
-            except HTTPError as e:
+            except Exception as e:
                 self.error("Failed to get comments for article: {}\n{}".format(self.targetUrl, repr(e)))
                 return
             parentNode['replies'].extend(dataNxt['conversation']['comments'])
@@ -400,7 +405,7 @@ class SpotIM(__SolutionSkeleton__):
 
             return self.__load_comments__()
 
-SOLUTION_MAP = {'www.washingtonpost.com': WashingtonPost, 'www.seattletimes.com': SeattleTimes, 'www.nytimes.com': NewYorkTimes, 'theintercept.com': TheIntercept, 'www.deseret.com': DeseretNews, 'www.nu.nl': NUnl, 'Spot.IM': SpotIM}
+SOLUTION_MAP = {'washingtonpost.com': WashingtonPost, 'www.washingtonpost.com': WashingtonPost, 'www.seattletimes.com': SeattleTimes, 'www.nytimes.com': NewYorkTimes, 'theintercept.com': TheIntercept, 'www.deseret.com': DeseretNews, 'www.nu.nl': NUnl, 'Spot.IM': SpotIM}
 
 class CommentScraper(Message):
     def __init__(self) -> None:
@@ -418,10 +423,10 @@ class CommentScraper(Message):
         headers = base_header()
         headers['Accept'] = 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
         headers['Accept-Encoding'] = 'identity'
-        response = requests.get(url, headers = headers)
         try:
+            response = requests.get(url, headers = headers)
             response.raise_for_status()
-        except HTTPError as e:
+        except Exception as e:
             self.error("Failed to request HTML source codes from {}: \n{}".format(url, repr(e)))
             return False
 
@@ -464,8 +469,11 @@ class CommentScraper(Message):
         parsedUrl = urlparse(articleURL)
         articleURL = '{}://{}{}'.format(parsedUrl.scheme, parsedUrl.netloc, parsedUrl.path)
         output = self.__build_output__(parsedUrl, filepath, filename)
-
-        sol = self.__get_solution__(articleURL, parsedUrl.netloc)
+        netloc = parsedUrl.netloc.split('.')
+        if len(netloc) < 2:
+            self.error('{} has unrecognized host name.'.format(parsedUrl.netloc))
+            return 
+        sol = self.__get_solution__(articleURL, '.'.join(netloc[-2:]))
         if sol:
             comments = sol.request_routine(articleURL)
             if comments:

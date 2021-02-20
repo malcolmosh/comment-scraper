@@ -46,10 +46,10 @@ class UrlScraper(Message):
         headers = base_header()
         headers['Accept'] = 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
         headers['Accept-Encoding'] = 'identity'
-        response = requests.get(url, headers = headers)
         try:
+            response = requests.get(url, headers = headers)
             response.raise_for_status()
-        except HTTPError as e:
+        except Exception as e:
             self.error("Failed to request HTML source codes from {}: \n{}".format(url, repr(e)))
             return None
 
@@ -172,11 +172,11 @@ class WashingtonPostUrlScraper(UrlScraper):
         for section in self.sections:
             for offset in range(10000-self.batchSize, -1, -self.batchSize):
                 requestURL = self.API_ENDPOINT.format(section=section, offset=offset, limit=self.batchSize)
-                response = requests.get(requestURL, headers=headers)
                 try:
+                    response = requests.get(requestURL, headers=headers)
                     response.raise_for_status()
                     response = response.json()
-                except HTTPError as e:
+                except Exception as e:
                     self.error("Failed to complete the boostrap process: \n{}".format(repr(e)))
                     exit()
                 soup = BeautifulSoup('<html><body>{}</body></html>'.format(response['rendering']), "lxml")
@@ -193,11 +193,11 @@ class WashingtonPostUrlScraper(UrlScraper):
         for section in self.sections:
             #for offset in range(0, 0, self.batchSize):
             requestURL = self.API_ENDPOINT.format(section=section, offset=0, limit=self.batchSize)
-            response = requests.get(requestURL, headers=headers)
             try:
+                response = requests.get(requestURL, headers=headers)
                 response.raise_for_status()
                 response = response.json()
-            except HTTPError as e:
+            except Exception as e:
                 self.error("Failed to retrieve part of urls from the Washington Post: {}\n{}".format( repr(e)))
                 continue
             soup = BeautifulSoup('<html><body>{}</body></html>'.format(response['rendering']), "lxml")
