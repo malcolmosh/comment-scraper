@@ -11,7 +11,7 @@ from utility import Message, MySQL
 from CommentScraper import CommentScraper
 
 class CommentScraperTask(MySQL):
-    def __init__(self, DBHost='localhost', DBPort=3306, DBUser='root', DBPassword='root', DBName='mysql', outputPath=None, interval=5) -> None:
+    def __init__(self, DBHost='localhost', DBPort=3306, DBUser='root', DBPassword='root', DBName='mysql', outputPath=None, interval=5, sleep=30) -> None:
         super().__init__(host=DBHost, port=DBPort, user=DBUser, password=DBPassword, database=DBName)
         self.url = None
         self.dateHash = None
@@ -20,6 +20,7 @@ class CommentScraperTask(MySQL):
         self.scraper = CommentScraper()
         self.outputPath = outputPath
         self.interval = interval
+        self.sleep = sleep
 
     def request_task(self):
         self.success = True
@@ -77,8 +78,8 @@ class CommentScraperTask(MySQL):
                     self.complete_task()
                     time.sleep(random.randint(0, self.interval))
                 else:
-                    self.info('No more task, I am going to sleep for 30 minutes.')
-                    cnt = 30
+                    self.info('No more task, I am going to sleep for {} minutes.'.format(self.sleep))
+                    cnt = self.sleep
                     while cnt > 0:
                         self.debug('Sleeping, wake up in {} minutes.'.format(cnt))
                         time.sleep(60)
