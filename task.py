@@ -34,6 +34,7 @@ class CommentScraperTask(MySQL):
         """
         UPDATE url_queue SET status = 1 WHERE url = %(url)s;
         """
+        self.DBCon.ping(reconnect=True, attempts=3, delay=5)
         self.DBCursor.execute(requestSQL1)
         row = self.DBCursor.fetchone()
         if row is None:
@@ -41,6 +42,7 @@ class CommentScraperTask(MySQL):
         else:
             self.url = row['url']
             self.dateHash = row['date_hash']
+            self.DBCon.ping(reconnect=True, attempts=3, delay=5)
             self.DBCursor.execute(requestSQL2, {'url': self.url})
             self.status = 1
             ret = True
@@ -62,6 +64,7 @@ class CommentScraperTask(MySQL):
 
     def complete_task(self):
         completeSQL = "UPDATE url_queue SET status = %(status)s, error_message = %(errMsg)s WHERE url = %(url)s;"
+        self.DBCon.ping(reconnect=True, attempts=3, delay=5)
         self.DBCursor.execute(completeSQL, {'url': self.url, 'status': self.status, 'errMsg': self.errMsg})
         self.info('Finish article {}.'.format(self.url))
     

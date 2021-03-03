@@ -3,7 +3,7 @@ CREATE TABLE url_queue (
     url VARCHAR(512) PRIMARY KEY,
     date_hash CHAR(19),
     host VARCHAR(128),
-    title VARCHAR(256),
+    title VARCHAR(1024),
     topic VARCHAR(256),
     category VARCHAR(64),
     published_time DATETIME,

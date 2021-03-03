@@ -246,11 +246,11 @@ class SpotIM(__SolutionSkeleton__):
         parsedUrl = urlparse(self.API_ENDPOINT)
         self.headers["Host"] = parsedUrl.netloc
         self.cookies = {}
-        # firefoxOption = webdriver.FirefoxOptions()
-        # firefoxOption.headless = True
-        # self.driver = webdriver.Firefox(options=firefoxOption)
-        # self.driver.set_page_load_timeout(15)
-        # self.driver.set_script_timeout(15)
+        firefoxOption = webdriver.FirefoxOptions()
+        firefoxOption.headless = True
+        self.driver = webdriver.Firefox(options=firefoxOption)
+        self.driver.set_page_load_timeout(15)
+        self.driver.set_script_timeout(15)
 
     def __random_id__(self) -> str:
         """Randomly generate a 32 hex digit random id in the format of "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx".
@@ -368,39 +368,33 @@ class SpotIM(__SolutionSkeleton__):
             articleURL (str): target url.
         """
         super().request_routine(articleURL)
-        firefoxOption = webdriver.FirefoxOptions()
-        firefoxOption.headless = True
-        driver = webdriver.Firefox(options=firefoxOption)
-        driver.set_page_load_timeout(15)
-        driver.set_script_timeout(15)
         try:
-            driver.get(articleURL)
+            self.driver.get(articleURL)
         except TimeoutException:
             pass
         
         try:
             # scroll down
             scrollCnt = 1
-            lenOfPage = driver.execute_script("window.scrollTo(0, document.body.scrollHeight); return document.body.scrollHeight;")
+            lenOfPage = self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight); return document.body.scrollHeight;")
             match=False
             while not match and scrollCnt < 10:
                 lastCount = lenOfPage
                 time.sleep(1)
-                lenOfPage = driver.execute_script("window.scrollTo(0, document.body.scrollHeight); return document.body.scrollHeight;")
+                lenOfPage = self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight); return document.body.scrollHeight;")
                 if lastCount==lenOfPage:
                     match=True
                 scrollCnt += 1
 
-            e = driver.find_element_by_xpath('//*[@data-post-id and @data-spot-id]')
+            e = self.driver.find_element_by_xpath('//*[@data-post-id and @data-spot-id]')
             spotID = e.get_attribute('data-spot-id')
             postID = e.get_attribute('data-post-id')
             deviceID = self.__random_id__()
             viewID = self.__random_id__()
         except NoSuchElementException:
             self.error('Cannot find spot ID and post ID in url: {}'.format(articleURL))
-            driver.quit()
             return
-        driver.quit()
+
         self.headers["x-post-id"] = postID
         self.headers["x-spot-id"] = spotID
         self.headers["x-spotim-device-uuid"] = deviceID
@@ -477,11 +471,11 @@ class CommentScraper(Message):
         parsedUrl = urlparse(articleURL)
         articleURL = '{}://{}{}'.format(parsedUrl.scheme, parsedUrl.netloc, parsedUrl.path)
         output = self.__build_output__(parsedUrl, filepath, filename)
-        netloc = parsedUrl.netloc.split('.')
-        if len(netloc) < 2:
-            self.error('{} has unrecognized host name.'.format(parsedUrl.netloc))
-            return 
-        sol = self.__get_solution__(articleURL, '.'.join(netloc[-2:]))
+        # netloc = parsedUrl.netloc.split('.')
+        # if len(netloc) < 2:
+        #     self.error('{} has unrecognized host name.'.format(parsedUrl.netloc))
+        #     return 
+        sol = self.__get_solution__(articleURL, parsedUrl.netloc)
         if sol:
             comments = sol.request_routine(articleURL)
             if comments:
