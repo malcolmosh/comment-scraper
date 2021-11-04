@@ -23,6 +23,38 @@ class NewYorkTimes(__SolutionSkeleton__):
         super().__init__()
         self.headers["Host"] = "www.nytimes.com"
 
+    def restore_structure(self, data):
+        assert "copyright" in data and "New York Times" in data["copyright"], "Unrecognized json format."
+        data["results"].pop("depthLimit")
+        data["results"].pop("replyLimit")
+        comments = data['results']['comments']
+        id2comment = {}
+        children = {0:[]}
+
+        def build_dict(x):
+            nonlocal id2comment, children
+            id2comment[x['commentID']] = x
+            if x['parentID']:
+                children.setdefault(x['parentID'], []).append(x['commentID'])
+            else:
+                children[0].append(x['commentID'])
+            for y in x['replies']:
+                build_dict(y)
+        
+        for x in comments:
+            build_dict(x)
+
+        def update_children(x):
+            x['replies'] = [id2comment[y] for y in children.get(x['commentID'], [])]
+            x['replyCount'] = len(x['replies'])
+            for y in x['replies']:
+                update_children(y)
+            x.pop('depth')
+
+        for x in comments:
+            update_children(x)
+
+
     def request_routine(self, articleURL):
         super().request_routine(articleURL)
 
@@ -48,7 +80,7 @@ class NewYorkTimes(__SolutionSkeleton__):
                     replyCnt += (len(replies) - 3)
         comments['results']['totalCommentsReturned'] += replyCnt
         comments['results']['totalReplyCommentsReturned'] += replyCnt
-        
+        self.restore_structure(comments)
         return comments
     
     def __get_reply_comments__(self, articleURL, commentSequence, offset, limit):
