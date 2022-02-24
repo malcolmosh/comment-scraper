@@ -18,6 +18,7 @@ class __SolutionSkeleton__(Message):
         # comment request routine, return the json object of comments
         self.targetUrl = url
 
+    
 class NewYorkTimes(__SolutionSkeleton__):
     def __init__(self) -> None:
         super().__init__()
@@ -210,13 +211,10 @@ class CoralByPost(__SolutionSkeleton__):
             self.error('Failed to load comments for {}: {}'.format(articleURL, repr(e)))
             return None
 
-class WashingtonPost(CoralByPost):
-    def __init__(self, batchSize=500) -> None:
-        super().__init__("https://www.washingtonpost.com/talk/api/v1/graph/ql", batchSize=batchSize)
 
-class SeattleTimes(CoralByPost):
+class GlobeAndMail(CoralByPost):
     def __init__(self, batchSize=500) -> None:
-        super().__init__("https://seattletimes.talk.coralproject.net/api/v1/graph/ql", batchSize=batchSize)
+        super().__init__("https://theglobeandmail.talk.coralproject.net/api/v1/graph/ql", batchSize=batchSize)
 
 class TheIntercept(CoralByPost):
     def __init__(self, batchSize=500) -> None:
@@ -243,22 +241,6 @@ class TheIntercept(CoralByPost):
 
         return super().request_routine("https://theintercept.com/?p={}".format(postID))
 
-class DeseretNews(CoralByPost):
-    def __init__(self, batchSize=500) -> None:
-        super().__init__("https://deseretnews.talk.coralproject.net/api/v1/graph/ql", batchSize=batchSize)
-
-class NUnl(CoralByPost):
-    def __init__(self, batchSize=500) -> None:
-        super().__init__("https://talk.nu.nl/api/v1/graph/ql", batchSize=batchSize)
-    
-    def request_routine(self, articleURL):
-        try:
-            postID = articleURL.split('/')[4]
-        except Exception as e:
-            self.error('Unrecognized patter for url from NU.nl.')
-            return
-
-        return super().request_routine("https://www.nu.nl/artikel/{}/redirect.html".format(postID))
 
 class SpotIM(__SolutionSkeleton__):
     def __init__(self, maxDepth = 10, maxReply = 2) -> None:
@@ -439,7 +421,7 @@ class SpotIM(__SolutionSkeleton__):
 
             return self.__load_comments__()
 
-SOLUTION_MAP = {'washingtonpost.com': WashingtonPost, 'www.washingtonpost.com': WashingtonPost, 'www.seattletimes.com': SeattleTimes, 'www.nytimes.com': NewYorkTimes, 'theintercept.com': TheIntercept, 'www.deseret.com': DeseretNews, 'www.nu.nl': NUnl, 'Spot.IM': SpotIM}
+SOLUTION_MAP = {'www.nytimes.com': NewYorkTimes, 'theintercept.com': TheIntercept, 'Spot.IM': SpotIM, 'www.theglobeandmail.com' : GlobeAndMail}
 
 class CommentScraper(Message):
     def __init__(self) -> None:

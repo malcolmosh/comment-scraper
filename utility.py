@@ -1,4 +1,4 @@
-import requests, mysql.connector
+import requests , mysql.connector
 from requests import HTTPError
 from mysql.connector import errorcode
 

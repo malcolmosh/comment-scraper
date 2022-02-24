@@ -14,5 +14,5 @@ This tool scrapes user comments. Given a url of an articles Web page, user comme
     - [New York Times](https://www.nytimes.com)
 
 ## Usages
-To load comments from a target article url, use the command `python3 CommentScrapper.py --url some-url`. By default, the result is saved under current directory in a path mapped to the path of the url. To save the output to a particular path, use the `--filepath` option, and to name the output file, use the `--filename` option.
+To load comments from a target article url, use the command `python3 CommentScraper.py --url some-url`. By default, the result is saved under current directory in a path mapped to the path of the url. To save the output to a particular path, use the `--filepath` option, and to name the output file, use the `--filename` option.
 
