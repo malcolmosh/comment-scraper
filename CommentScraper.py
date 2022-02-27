@@ -51,6 +51,7 @@ class NewYorkTimes(__SolutionSkeleton__):
             for y in x['replies']:
                 update_children(y)
             x.pop('depth')
+            
 
         for x in comments:
             update_children(x)
