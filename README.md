@@ -1,3 +1,3 @@
 # Comment Scraper
 
-Adapted version of this library that scrapes comments from Globe and Mail articles. 
+An adapted version of this package that scrapes Globe and Mail article comments from their website.
